@@ -75,6 +75,39 @@ class JourneyTemplateController extends Controller
         return view('admin.templates.show', compact('template'));
     }
 
+    public function edit(JourneyTemplate $template)
+    {
+        $template->load('stages.milestones');
+        $programmes = Programme::where('is_active', true)->get();
+        return view('admin.templates.edit', compact('template', 'programmes'));
+    }
+
+    public function update(Request $request, JourneyTemplate $template)
+    {
+        $validated = $request->validate([
+            'programme_id' => 'required|exists:programmes,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'is_default' => 'boolean',
+        ]);
+
+        // If setting as default, unset others
+        if ($request->boolean('is_default')) {
+            JourneyTemplate::where('programme_id', $validated['programme_id'])
+                ->where('id', '!=', $template->id)
+                ->update(['is_default' => false]);
+        }
+
+        $template->update([
+            'programme_id' => $validated['programme_id'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'is_default' => $request->boolean('is_default'),
+        ]);
+
+        return redirect()->route('admin.templates.show', $template)->with('success', 'Template updated.');
+    }
+
     public function destroy(JourneyTemplate $template)
     {
         $template->delete();

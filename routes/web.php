@@ -126,4 +126,9 @@ Route::middleware('auth')->group(function () {
     // Global Timeline Overview (all roles)
     Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline.index');
     Route::get('/timeline/{student}', [TimelineController::class, 'show'])->name('timeline.show');
+
+    // Student Research Journey (all roles with appropriate access)
+    Route::get('/students/{student}/journey', [Student\JourneyController::class, 'index'])->name('journey.index');
+    Route::get('/students/{student}/journey/data', [Student\JourneyController::class, 'data'])->name('journey.data');
+    Route::put('/students/{student}/journey/stages/{stage}', [Student\JourneyController::class, 'updateStage'])->name('journey.stages.update');
 });
