@@ -24,9 +24,4 @@ class Programme extends Model
     {
         return $this->hasMany(Student::class);
     }
-
-    public function journeyTemplates(): HasMany
-    {
-        return $this->hasMany(JourneyTemplate::class);
-    }
 }

@@ -18,6 +18,7 @@ class GanttChart {
         this.onTaskClick = options.onTaskClick || (() => {});
         this.onDateChange = options.onDateChange || (() => {});
         this.onProgressChange = options.onProgressChange || (() => {});
+        this.onTasksLoaded = options.onTasksLoaded || (() => {});
         this.onError = options.onError || console.error;
         this.gantt = null;
         this.tasks = [];
@@ -67,6 +68,7 @@ class GanttChart {
     async loadTasks() {
         const data = await taskApi.getGanttData(this.studentId);
         this.tasks = data;
+        this.onTasksLoaded(data);
     }
 
     /**
@@ -638,7 +640,17 @@ export function ganttChart(options = {}) {
     return {
         loading: true,
         chart: null,
-        viewMode: 'Week',
+        viewMode: 'Month',
+        showDependencies: true,
+        showProgress: true,
+        criticalPath: false,
+        currentDate: new Date(),
+        taskStats: {
+            total: 0,
+            completed: 0,
+            inProgress: 0,
+            overdue: 0
+        },
 
         async init() {
             this.chart = initGantt({
@@ -648,10 +660,13 @@ export function ganttChart(options = {}) {
                     window.location.href = `/students/${options.studentId}/tasks/${task.id}`;
                 },
                 onDateChange: (taskId, start, end) => {
-                    console.log(`Task ${taskId} dates changed: ${start} - ${end}`);
+                    this.showNotification('Dates updated successfully');
                 },
                 onProgressChange: (taskId, progress) => {
-                    console.log(`Task ${taskId} progress: ${progress}%`);
+                    this.showNotification(`Progress updated to ${progress}%`);
+                },
+                onTasksLoaded: (tasks) => {
+                    this.calculateStats(tasks);
                 },
                 onError: (error) => {
                     console.error('Gantt error:', error);
@@ -667,6 +682,108 @@ export function ganttChart(options = {}) {
 
         refresh() {
             this.chart?.refresh();
+        },
+
+        navigate(direction) {
+            if (!this.chart) return;
+
+            const ganttInstance = this.chart.gantt;
+            if (!ganttInstance) return;
+
+            // Calculate date shift based on view mode
+            const shifts = {
+                'Day': 1,
+                'Week': 7,
+                'Month': 30
+            };
+            const days = shifts[this.viewMode] || 7;
+
+            if (direction === 'prev') {
+                ganttInstance.gantt_start.setDate(ganttInstance.gantt_start.getDate() - days);
+                ganttInstance.gantt_end.setDate(ganttInstance.gantt_end.getDate() - days);
+            } else if (direction === 'next') {
+                ganttInstance.gantt_start.setDate(ganttInstance.gantt_start.getDate() + days);
+                ganttInstance.gantt_end.setDate(ganttInstance.gantt_end.getDate() + days);
+            } else if (direction === 'today') {
+                const today = new Date();
+                ganttInstance.gantt_start = new Date(today);
+                ganttInstance.gantt_start.setDate(today.getDate() - days);
+                ganttInstance.gantt_end = new Date(today);
+                ganttInstance.gantt_end.setDate(today.getDate() + days * 2);
+            }
+
+            this.chart.refresh();
+        },
+
+        zoom(level) {
+            // View mode cycling for zoom
+            const modes = ['Day', 'Week', 'Month'];
+            const currentIndex = modes.indexOf(this.viewMode);
+
+            if (level === 'in') {
+                const newIndex = Math.max(0, currentIndex - 1);
+                this.setView(modes[newIndex]);
+            } else if (level === 'out') {
+                const newIndex = Math.min(modes.length - 1, currentIndex + 1);
+                this.setView(modes[newIndex]);
+            } else if (level === 'reset') {
+                this.setView('Month');
+            }
+        },
+
+        async exportAs(format) {
+            if (!this.chart) return;
+
+            try {
+                if (format === 'png') {
+                    await this.chart.exportImage(`gantt-chart-${new Date().toISOString().split('T')[0]}.png`);
+                } else if (format === 'pdf') {
+                    await this.chart.exportPdf(`gantt-chart-${new Date().toISOString().split('T')[0]}.pdf`);
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                this.showNotification('Export failed', 'error');
+            }
+        },
+
+        calculateStats(tasks) {
+            if (!tasks) {
+                tasks = this.chart?.tasks || [];
+            }
+
+            this.taskStats = {
+                total: tasks.length,
+                completed: tasks.filter(t => t.progress === 100).length,
+                inProgress: tasks.filter(t => t.progress > 0 && t.progress < 100).length,
+                overdue: tasks.filter(t => {
+                    const end = new Date(t.end);
+                    const today = new Date();
+                    return end < today && t.progress < 100;
+                }).length
+            };
+        },
+
+        showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-xl shadow-lg text-sm font-medium z-50 flex items-center gap-2
+                ${type === 'success' ? 'bg-success text-white' : 'bg-danger text-white'}`;
+            notification.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success'
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'
+                    }
+                </svg>
+                ${message}
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(10px)';
+                notification.style.transition = 'all 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         },
 
         destroy() {

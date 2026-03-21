@@ -52,7 +52,12 @@
         {{-- Main content --}}
         <div class="lg:pl-60">
             {{-- Top bar --}}
-            <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-border">
+            @php
+                $role = auth()->user()->role;
+                $effectiveRole = session()->get('admin_role_switch', $role);
+                $isRoleSwitched = $role === 'admin' && $effectiveRole !== $role;
+            @endphp
+            <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-border @if($isRoleSwitched) border-t-4 border-t-accent @endif">
                 <div class="flex items-center justify-between h-14 px-4 sm:px-6">
                     <div class="flex items-center gap-3">
                         <button @click="sidebarOpen = true" class="lg:hidden text-secondary hover:text-primary">
@@ -61,13 +66,126 @@
                         <h1 class="text-sm font-medium text-primary">{{ $header ?? '' }}</h1>
                     </div>
                     <div class="flex items-center gap-3">
+                        {{-- Role Switcher (Admin only) --}}
+                        @if(auth()->check() && auth()->user()->role === 'admin')
+                            @php
+                                $role = auth()->user()->role;
+                                $effectiveRole = session()->get('admin_role_switch', $role);
+                                $isRoleSwitched = $role === 'admin' && $effectiveRole !== $role;
+                            @endphp
+                            <div x-data="{ open: false }" class="relative">
+                                <button @click="open = !open" @click.outside="open = false"
+                                        class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-xl border border-border hover:border-accent/30 hover:bg-surface transition-all @if($isRoleSwitched) bg-accent/5 border-accent/30 @endif">
+                                    @if($isRoleSwitched)
+                                        <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                                        <span class="text-secondary hover:text-primary">{{ ucfirst($effectiveRole) }}</span>
+                                    @else
+                                        <span class="text-secondary hover:text-primary">View as:</span>
+                                        <span class="text-primary font-medium">{{ ucfirst($effectiveRole) }}</span>
+                                    @endif
+                                    <svg class="w-4 h-4 text-tertiary" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+
+                                <div x-show="open" x-cloak
+                                     x-transition:enter="transition ease-out duration-150"
+                                     x-transition:enter-start="opacity-0 scale-95"
+                                     x-transition:enter-end="opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-100"
+                                     x-transition:leave-start="opacity-100 scale-100"
+                                     x-transition:leave-end="opacity-0 scale-95"
+                                     class="absolute right-0 top-12 w-48 bg-white dark:bg-dark-card rounded-xl shadow-medium dark:shadow-dark-medium border border-border dark:border-dark-border overflow-hidden z-50">
+                                    <div class="p-2">
+                                        {{-- Admin Role --}}
+                                        <form method="POST" action="{{ route('admin.switch-role-reset') }}" class="block">
+                                            @csrf
+                                            <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm @if(!$isRoleSwitched) bg-accent/10 text-accent @else text-secondary hover:bg-surface hover:text-primary @endif transition-colors">
+                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="text-left">
+                                                    <p class="font-medium text-primary">Admin</p>
+                                                    <p class="text-xs text-secondary">Full access</p>
+                                                </div>
+                                            </button>
+                                        </form>
+
+                                        <div class="my-1 border-t border-border dark:border-dark-border"></div>
+
+                                        {{-- Student Role --}}
+                                        <form method="POST" action="{{ route('admin.switch-role') }}" class="block">
+                                            @csrf
+                                            <input type="hidden" name="role" value="student">
+                                            <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm @if($effectiveRole === 'student') bg-accent/10 text-accent @else text-secondary hover:bg-surface hover:text-primary @endif transition-colors">
+                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14.9c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zm2.5-10c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="text-left">
+                                                    <p class="font-medium text-primary">Student</p>
+                                                    <p class="text-xs text-secondary">Student view</p>
+                                                </div>
+                                            </button>
+                                        </form>
+
+                                        {{-- Supervisor Role --}}
+                                        <form method="POST" action="{{ route('admin.switch-role') }}" class="block">
+                                            @csrf
+                                            <input type="hidden" name="role" value="supervisor">
+                                            <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm @if($effectiveRole === 'supervisor') bg-accent/10 text-accent @else text-secondary hover:bg-surface hover:text-primary @endif transition-colors">
+                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="text-left">
+                                                    <p class="font-medium text-primary">Supervisor</p>
+                                                    <p class="text-xs text-secondary">Supervisor view</p>
+                                                </div>
+                                            </button>
+                                        </form>
+
+                                        {{-- Co-Supervisor Role --}}
+                                        <form method="POST" action="{{ route('admin.switch-role') }}" class="block">
+                                            @csrf
+                                            <input type="hidden" name="role" value="cosupervisor">
+                                            <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm @if($effectiveRole === 'cosupervisor') bg-accent/10 text-accent @else text-secondary hover:bg-surface hover:text-primary @endif transition-colors">
+                                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="text-left">
+                                                    <p class="font-medium text-primary">Co-Supervisor</p>
+                                                    <p class="text-xs text-secondary">Co-supervisor view</p>
+                                                </div>
+                                            </button>
+                                        </form>
+
+                                        @if($isRoleSwitched)
+                                            <div class="mt-1 pt-2 border-t border-border dark:border-dark-border">
+                                                <form method="POST" action="{{ route('admin.switch-role-reset') }}" class="block">
+                                                    @csrf
+                                                    <button type="submit" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/5 rounded-lg transition-colors">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                        </svg>
+                                                        Exit Role View
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         {{-- Notifications --}}
                         <div x-data="notifications()" class="relative">
-                            <button @click="toggle()" class="relative p-1.5 text-secondary hover:text-primary rounded-md hover:bg-gray-100">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                                <span x-show="unreadCount > 0" class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center" x-text="unreadCount"></span>
-                            </button>
-                        </div>
 
                         {{-- User menu --}}
                         <div x-data="{ open: false }" class="relative">

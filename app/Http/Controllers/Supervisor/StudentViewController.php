@@ -22,7 +22,6 @@ class StudentViewController extends Controller
         $this->authorize('view', $student);
         $student->load([
             'user', 'programme', 'supervisor', 'cosupervisor',
-            'researchJourneys.stages.milestones',
             'tasks' => fn($q) => $q->whereNull('parent_id')->orderBy('sort_order'),
             'progressReports' => fn($q) => $q->latest(),
             'meetings' => fn($q) => $q->latest('scheduled_at')->take(5),

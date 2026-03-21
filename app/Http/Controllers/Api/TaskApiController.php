@@ -68,13 +68,11 @@ class TaskApiController extends Controller
 
     public function ganttData(Student $student)
     {
+        // Get all tasks for the student, including those without dates
+        // The Task model's toGanttData() method handles default dates
         $tasks = $student->tasks()
-            ->where(function ($query) {
-                $query->whereNotNull('start_date')
-                    ->orWhereNotNull('due_date');
-            })
             ->with('dependencies')
-            ->orderBy('start_date')
+            ->orderBy('sort_order')
             ->get()
             ->map(fn(Task $task) => $task->toGanttData());
 

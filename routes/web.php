@@ -45,13 +45,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/dashboard', [Admin\DashboardController::class, 'index'])->name('dashboard');
     Route::post('/role-switch', [Admin\DashboardController::class, 'switchRole'])->name('switch-role');
     Route::post('/role-switch-reset', [Admin\DashboardController::class, 'resetRole'])->name('switch-role-reset');
+    Route::get('/role-switch/{role}', [Admin\DashboardController::class, 'showStudentSelection'])->name('role-switch-select-student');
+    Route::post('/role-switch-student', [Admin\DashboardController::class, 'storeStudentSelection'])->name('role-switch-student');
 
     Route::resource('students', Admin\StudentManagementController::class);
     Route::post('students/{student}/approve', [Admin\StudentManagementController::class, 'approve'])->name('students.approve');
 
     Route::resource('programmes', Admin\ProgrammeController::class)->except('show');
-
-    Route::resource('templates', Admin\JourneyTemplateController::class);
 
     Route::get('/settings/storage', [Admin\SettingsController::class, 'storage'])->name('settings.storage');
     Route::post('/settings/storage', [Admin\SettingsController::class, 'updateStorage'])->name('settings.storage.update');
@@ -82,8 +82,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/students/{student}/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/students/{student}/tasks/kanban', [TaskController::class, 'kanban'])->name('tasks.kanban');
     Route::get('/students/{student}/tasks/gantt', [TaskController::class, 'gantt'])->name('tasks.gantt');
-    Route::get('/students/{student}/tasks/timeline', [TaskController::class, 'timeline'])->name('tasks.timeline');
-    Route::get('/students/{student}/tasks/timeline-overview', [TaskController::class, 'timelineOverview'])->name('tasks.timeline-overview');
     Route::get('/students/{student}/tasks/create', [TaskController::class, 'create'])->name('tasks.create');
     Route::post('/students/{student}/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::get('/students/{student}/tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
@@ -126,9 +124,4 @@ Route::middleware('auth')->group(function () {
     // Global Timeline Overview (all roles)
     Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline.index');
     Route::get('/timeline/{student}', [TimelineController::class, 'show'])->name('timeline.show');
-
-    // Student Research Journey (all roles with appropriate access)
-    Route::get('/students/{student}/journey', [Student\JourneyController::class, 'index'])->name('journey.index');
-    Route::get('/students/{student}/journey/data', [Student\JourneyController::class, 'data'])->name('journey.data');
-    Route::put('/students/{student}/journey/stages/{stage}', [Student\JourneyController::class, 'updateStage'])->name('journey.stages.update');
 });

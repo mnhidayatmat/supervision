@@ -32,7 +32,6 @@ class Student extends Model
     public function supervisor(): BelongsTo { return $this->belongsTo(User::class, 'supervisor_id'); }
     public function cosupervisor(): BelongsTo { return $this->belongsTo(User::class, 'cosupervisor_id'); }
 
-    public function researchJourneys(): HasMany { return $this->hasMany(ResearchJourney::class); }
     public function tasks(): HasMany { return $this->hasMany(Task::class); }
     public function progressReports(): HasMany { return $this->hasMany(ProgressReport::class); }
     public function files(): HasMany { return $this->hasMany(File::class); }

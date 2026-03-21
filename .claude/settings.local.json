@@ -14,7 +14,10 @@
       "Bash(netstat:*)",
       "Bash(taskkill:*)",
       "Bash(cat:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(cd \"D:\\\\App\\\\Laravel\\\\supervision\" && git push origin main 2>&1)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)"
     ]
   }
 }

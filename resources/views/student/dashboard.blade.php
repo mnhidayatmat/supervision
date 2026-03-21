@@ -98,42 +98,6 @@
             </x-slot:action>
         </x-card>
 
-        {{-- Research journey --}}
-        <x-card title="Research Journey">
-            @forelse($student->researchJourleys as $journey)
-                <div class="mb-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <p class="text-sm font-medium text-primary">{{ $journey->name }}</p>
-                        <x-status-badge :status="$journey->status" size="sm" />
-                    </div>
-                    <div class="space-y-3">
-                        @foreach($journey->stages as $stage)
-                            <div>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <div class="w-2.5 h-2.5 rounded-full @if($stage->status === 'completed') bg-success @elseif($stage->status === 'in_progress') bg-accent @else bg-tertiary @endif"></div>
-                                    <p class="text-xs font-medium text-primary">{{ $stage->name }}</p>
-                                    <span class="text-[10px] text-tertiary ml-auto">{{ $stage->milestones->where('status', 'completed')->count() }}/{{ $stage->milestones->count() }}</span>
-                                </div>
-                                <div class="ml-4 space-y-1">
-                                    @foreach($stage->milestones as $milestone)
-                                        <div class="flex items-center gap-2 py-0.5">
-                                            <div class="w-1.5 h-1.5 rounded-full @if($milestone->status === 'completed') bg-success/70 @else bg-tertiary @endif"></div>
-                                            <span class="text-xs text-secondary @if($milestone->status === 'completed') line-through opacity-60 @endif">{{ $milestone->name }}</span>
-                                            @if($milestone->due_date)
-                                                <span class="text-[10px] text-tertiary ml-auto">{{ $milestone->due_date->format('M d') }}</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @empty
-                <p class="text-sm text-secondary text-center py-4">No journey assigned yet</p>
-            @endforelse
-        </x-card>
-
         {{-- Recent reports --}}
         <x-card title="Recent Reports" :action="'View All'">
             <div class="space-y-1 -mx-2">

@@ -8,9 +8,9 @@
 
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-2">
-            <a href="{{ route('tasks.index', $student) }}" class="px-3 py-1.5 text-xs font-medium rounded-md {{ request()->routeIs('tasks.index') ? 'bg-primary text-white' : 'text-secondary hover:bg-gray-100' }}">List</a>
-            <a href="{{ route('tasks.kanban', $student) }}" class="px-3 py-1.5 text-xs font-medium rounded-md text-secondary hover:bg-gray-100">Kanban</a>
-            <a href="{{ route('tasks.gantt', $student) }}" class="px-3 py-1.5 text-xs font-medium rounded-md text-secondary hover:bg-gray-100">Timeline</a>
+            <a href="{{ route('tasks.index', $student) }}" class="px-3 py-1.5 text-xs font-medium rounded-md {{ request()->routeIs('tasks.index') ? 'bg-accent text-white' : 'text-secondary hover:bg-surface' }}">List</a>
+            <a href="{{ route('tasks.kanban', $student) }}" class="px-3 py-1.5 text-xs font-medium rounded-md text-secondary hover:bg-surface">Kanban</a>
+            <a href="{{ route('tasks.gantt', $student) }}" class="px-3 py-1.5 text-xs font-medium rounded-md text-secondary hover:bg-surface">Gantt</a>
         </div>
         <x-button href="{{ route('tasks.create', $student) }}" variant="accent" size="sm">+ New Task</x-button>
     </div>

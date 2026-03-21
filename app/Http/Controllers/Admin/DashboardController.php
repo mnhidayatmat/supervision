@@ -71,16 +71,90 @@ class DashboardController extends Controller
             'role' => 'required|in:student,supervisor,cosupervisor,admin',
         ]);
 
-        // Store the role switch in session
-        session()->put('admin_role_switch', $validated['role']);
+        $role = $validated['role'];
 
-        return back()->with('success', "Switched to {$validated['role']} view.");
+        // Reset any existing role switch
+        session()->forget('admin_role_switch');
+        session()->forget('admin_view_as_student_id');
+
+        // For admin role, just return to admin dashboard
+        if ($role === 'admin') {
+            return redirect()->route('admin.dashboard')->with('success', 'Returned to admin view.');
+        }
+
+        // For student/supervisor/cosupervisor roles, find a student to view
+        $student = match($role) {
+            'student' => Student::where('status', 'active')->first(),
+            'supervisor', 'cosupervisor' => Student::where('status', 'active')
+                ->where(function($query) {
+                    $query->where('supervisor_id', auth()->id())
+                          ->orWhere('cosupervisor_id', auth()->id());
+                })->first(),
+            default => null,
+        };
+
+        if (!$student) {
+            return back()->with('error', "No active students found for {$role} view.");
+        }
+
+        // Store the role switch and student ID in session
+        session()->put('admin_role_switch', $role);
+        session()->put('admin_view_as_student_id', $student->id);
+
+        // Redirect to appropriate dashboard
+        return match($role) {
+            'student' => redirect()->route('student.dashboard'),
+            'supervisor', 'cosupervisor' => redirect()->route('supervisor.students.index'),
+            default => redirect()->route('admin.dashboard'),
+        };
     }
 
     public function resetRole()
     {
         session()->forget('admin_role_switch');
+        session()->forget('admin_view_as_student_id');
 
-        return back()->with('success', 'Returned to admin view.');
+        return redirect()->route('admin.dashboard')->with('success', 'Returned to admin view.');
+    }
+
+    /**
+     * Show student selection page for role switching
+     */
+    public function showStudentSelection(Request $request)
+    {
+        $role = $request->query('role', 'student');
+
+        $students = match($role) {
+            'student' => \App\Models\Student::where('status', 'active')->get(),
+            'supervisor', 'cosupervisor' => \App\Models\Student::where('status', 'active')
+                ->where(function($query) {
+                    $query->where('supervisor_id', auth()->id())
+                          ->orWhere('cosupervisor_id', auth()->id());
+                })->get(),
+            default => collect(),
+        };
+
+        return view('admin.role-switch-student', compact('role', 'students'));
+    }
+
+    /**
+     * Store the selected student for role viewing
+     */
+    public function storeStudentSelection(Request $request)
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|exists:students,id',
+        ]);
+
+        session()->put('admin_view_as_student_id', $validated['student_id']);
+
+        // Redirect to appropriate dashboard
+        $role = session()->get('admin_role_switch');
+
+        return match($role) {
+            'student' => redirect()->route('student.dashboard'),
+            'supervisor', 'cosupervisor' => redirect()->route('supervisor.students.index'),
+            default => redirect()->route('admin.dashboard'),
+        };
     }
 }

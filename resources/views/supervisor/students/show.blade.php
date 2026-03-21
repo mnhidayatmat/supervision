@@ -107,7 +107,7 @@
                     <div class="mt-2 w-full bg-gray-100 rounded-full h-2">
                         <div class="bg-accent h-2 rounded-full transition-all" style="width: {{ $student->overall_progress ?? 0 }}%"></div>
                     </div>
-                    <p class="text-xs text-secondary mt-2">Research journey completion</p>
+                    <p class="text-xs text-secondary mt-2">Overall progress</p>
                 </div>
             </x-card>
 
@@ -131,57 +131,6 @@
 
         {{-- Right column --}}
         <div class="lg:col-span-2 space-y-4">
-            {{-- Research journey --}}
-            <x-card title="Research Journey" :padding='false'>
-                @forelse($student->researchJourneys as $journey)
-                    <div class="p-5">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <p class="text-sm font-medium text-primary">{{ $journey->template?->name ?? 'Custom Journey' }}</p>
-                                <p class="text-xs text-secondary mt-0.5">{{ $journey->stages->count() }} stages</p>
-                            </div>
-                            <x-status-badge :status="$journey->status ?? 'in_progress'" />
-                        </div>
-                        <div class="space-y-2">
-                            @foreach($journey->stages->sortBy('order') as $stage)
-                                <div class="border border-border rounded-lg overflow-hidden">
-                                    <div class="flex items-center justify-between px-4 py-2.5 bg-surface">
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-5 h-5 rounded-full bg-white border border-border text-xs font-medium text-secondary flex items-center justify-center flex-shrink-0">{{ $stage->order }}</span>
-                                            <span class="text-sm font-medium text-primary">{{ $stage->name }}</span>
-                                        </div>
-                                        <x-status-badge :status="$stage->status ?? 'not_started'" />
-                                    </div>
-                                    @if($stage->milestones->isNotEmpty())
-                                        <div class="divide-y divide-border">
-                                            @foreach($stage->milestones->sortBy('order') as $milestone)
-                                                <div class="flex items-center justify-between px-4 py-2">
-                                                    <div class="flex items-center gap-2.5">
-                                                        @if($milestone->completed_at)
-                                                            <svg class="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                                        @else
-                                                            <div class="w-3.5 h-3.5 rounded-full border border-border flex-shrink-0"></div>
-                                                        @endif
-                                                        <span class="text-xs {{ $milestone->completed_at ? 'text-secondary line-through' : 'text-primary' }}">{{ $milestone->name }}</span>
-                                                    </div>
-                                                    @if($milestone->due_date)
-                                                        <span class="text-xs text-secondary flex-shrink-0">{{ $milestone->due_date->format('d M Y') }}</span>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @empty
-                    <div class="p-8 text-center text-secondary">
-                        <p class="text-sm">No research journey assigned</p>
-                    </div>
-                @endforelse
-            </x-card>
-
             {{-- Tasks needing attention --}}
             <x-card title="Tasks Awaiting Review" :padding='false'>
                 <div class="divide-y divide-border">

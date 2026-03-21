@@ -100,8 +100,25 @@ class Task extends Model
      */
     public function toGanttData(): array
     {
-        $startDate = $this->start_date ?? now()->startOfDay();
-        $endDate = $this->getEndDate() ?? $startDate->copy()->addDays(7);
+        // Use today as default start if not set
+        $startDate = $this->start_date ? \Carbon\Carbon::parse($this->start_date) : now()->startOfDay();
+
+        // Calculate end date
+        if ($this->due_date) {
+            $endDate = \Carbon\Carbon::parse($this->due_date);
+        } elseif ($this->duration_days) {
+            $endDate = $startDate->copy()->addDays($this->duration_days);
+        } else {
+            // Default duration based on priority
+            $defaultDays = match($this->priority ?? 'medium') {
+                'urgent' => 3,
+                'high' => 5,
+                'medium' => 7,
+                'low' => 14,
+                default => 7
+            };
+            $endDate = $startDate->copy()->addDays($defaultDays);
+        }
 
         return [
             'id' => 'task-' . $this->id,
@@ -113,6 +130,7 @@ class Task extends Model
             'custom_class' => $this->is_milestone ? 'gantt-milestone' : 'gantt-task-' . $this->status,
             'task_id' => $this->id,
             'is_milestone' => $this->is_milestone,
+            'has_dates' => !empty($this->start_date) || !empty($this->due_date), // Track if dates were explicitly set
         ];
     }
 }

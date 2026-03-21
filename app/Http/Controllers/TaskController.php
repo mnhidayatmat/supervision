@@ -49,27 +49,35 @@ class TaskController extends Controller
         return view('tasks.gantt', compact('student', 'tasks'));
     }
 
-    public function timeline(Student $student)
+    public function timelineOverview(Student $student)
     {
         $this->authorize('view', $student);
 
-        $tasks = $student->tasks()
-            ->whereNotNull('start_date')
-            ->whereNotNull('due_date')
-            ->with('dependencies')
-            ->orderBy('start_date')
+        $student->load(['user', 'programme']);
+
+        // Get milestone tasks for timeline
+        $milestoneTasks = $student->tasks()
+            ->where('is_milestone', true)
+            ->orderBy('due_date')
             ->get();
 
-        return view('tasks.timeline', compact('student', 'tasks'));
+        return view('tasks.timeline-overview', compact('student', 'milestoneTasks'));
     }
 
     public function create(Student $student)
     {
         $this->authorize('view', $student);
-        $milestones = $student->researchJourneys()->with('stages.milestones')->get()
-            ->pluck('stages')->flatten()->pluck('milestones')->flatten();
 
-        return view('tasks.create', compact('student', 'milestones'));
+        // Get all available milestones
+        $milestones = \App\Models\Milestone::orderBy('name')->get();
+
+        // Get parent tasks for subtask selection
+        $parentTasks = $student->tasks()
+            ->whereNull('parent_id')
+            ->orderBy('title')
+            ->get(['id', 'title']);
+
+        return view('tasks.create', compact('student', 'milestones', 'parentTasks'));
     }
 
     public function store(Request $request, Student $student)
@@ -90,7 +98,7 @@ class TaskController extends Controller
         $student->tasks()->create([
             ...$validated,
             'assigned_by' => Auth::id(),
-            'status' => 'backlog',
+            'status' => 'planned',
         ]);
 
         return redirect()->route('tasks.index', $student)->with('success', 'Task created.');
@@ -106,9 +114,18 @@ class TaskController extends Controller
     public function edit(Student $student, Task $task)
     {
         $this->authorize('update', $task);
-        $milestones = $student->researchJourneys()->with('stages.milestones')->get()
-            ->pluck('stages')->flatten()->pluck('milestones')->flatten();
-        return view('tasks.edit', compact('student', 'task', 'milestones'));
+
+        // Get all available milestones
+        $milestones = \App\Models\Milestone::orderBy('name')->get();
+
+        // Get parent tasks for subtask selection
+        $parentTasks = $student->tasks()
+            ->whereNull('parent_id')
+            ->where('id', '!=', $task->id)
+            ->orderBy('title')
+            ->get(['id', 'title']);
+
+        return view('tasks.edit', compact('student', 'task', 'milestones', 'parentTasks'));
     }
 
     public function update(Request $request, Student $student, Task $task)

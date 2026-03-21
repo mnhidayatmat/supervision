@@ -3,17 +3,14 @@
 namespace Database\Seeders;
 
 use App\Models\AiProvider;
-use App\Models\JourneyTemplate;
 use App\Models\Meeting;
 use App\Models\Milestone;
 use App\Models\Programme;
 use App\Models\ProgressReport;
-use App\Models\ResearchJourney;
 use App\Models\Stage;
 use App\Models\Student;
 use App\Models\SystemSetting;
 use App\Models\Task;
-use App\Models\TemplateStage;
 use App\Models\User;
 use App\Services\FileService;
 use Illuminate\Database\Seeder;
@@ -72,11 +69,6 @@ class DatabaseSeeder extends Seeder
         $fyp = Programme::create(['name' => 'Final Year Project', 'code' => 'FYP', 'slug' => 'fyp', 'duration_months' => 8, 'sort_order' => 1]);
         $msc = Programme::create(['name' => 'Master of Science', 'code' => 'MSC', 'slug' => 'msc', 'duration_months' => 24, 'sort_order' => 2]);
         $phd = Programme::create(['name' => 'Doctor of Philosophy', 'code' => 'PHD', 'slug' => 'phd', 'duration_months' => 48, 'sort_order' => 3]);
-
-        // ── Journey Templates ──
-        $this->createFypTemplate($fyp);
-        $mscTemplate = $this->createMscTemplate($msc);
-        $this->createPhdTemplate($phd);
 
         // ── Students ──
         $st1User = User::create([
@@ -138,25 +130,9 @@ class DatabaseSeeder extends Seeder
             'status' => 'pending',
         ]);
 
-        // ── Instantiate journey for student 1 ──
-        $journey = ResearchJourney::create([
-            'student_id' => $student1->id,
-            'journey_template_id' => $mscTemplate->id,
-            'name' => 'MSc Research Journey',
-            'start_date' => $student1->start_date,
-            'status' => 'in_progress',
-            'progress' => 25,
-        ]);
-
-        $stage1 = Stage::create(['research_journey_id' => $journey->id, 'name' => 'Proposal Phase', 'sort_order' => 0, 'status' => 'completed', 'progress' => 100]);
-        $stage2 = Stage::create(['research_journey_id' => $journey->id, 'name' => 'Literature Review', 'sort_order' => 1, 'status' => 'in_progress', 'progress' => 50]);
-        $stage3 = Stage::create(['research_journey_id' => $journey->id, 'name' => 'Methodology & Implementation', 'sort_order' => 2, 'status' => 'not_started']);
-        $stage4 = Stage::create(['research_journey_id' => $journey->id, 'name' => 'Analysis & Writing', 'sort_order' => 3, 'status' => 'not_started']);
-
-        $m1 = Milestone::create(['stage_id' => $stage1->id, 'name' => 'Proposal Approved', 'sort_order' => 0, 'status' => 'completed', 'progress' => 100, 'due_date' => now()->subMonths(4)]);
-        $m2 = Milestone::create(['stage_id' => $stage2->id, 'name' => 'Literature Review Draft', 'sort_order' => 0, 'status' => 'in_progress', 'progress' => 60, 'due_date' => now()->addWeeks(2)]);
-        $m3 = Milestone::create(['stage_id' => $stage3->id, 'name' => 'System Design Complete', 'sort_order' => 0, 'status' => 'not_started', 'due_date' => now()->addMonths(4)]);
-        $m4 = Milestone::create(['stage_id' => $stage4->id, 'name' => 'Thesis Submitted', 'sort_order' => 0, 'status' => 'not_started', 'due_date' => now()->addMonths(16)]);
+        // ── Create dummy milestones for tasks ──
+        $m1 = Milestone::create(['name' => 'Proposal Approved', 'sort_order' => 0, 'status' => 'completed', 'progress' => 100, 'due_date' => now()->subMonths(4)]);
+        $m2 = Milestone::create(['name' => 'Literature Review', 'sort_order' => 1, 'status' => 'in_progress', 'progress' => 60, 'due_date' => now()->addWeeks(2)]);
 
         // ── Tasks for student 1 ──
         Task::create(['student_id' => $student1->id, 'milestone_id' => $m1->id, 'assigned_by' => $sv1->id, 'title' => 'Write research proposal', 'status' => 'completed', 'priority' => 'high', 'progress' => 100, 'start_date' => now()->subMonths(5), 'due_date' => now()->subMonths(4), 'completed_at' => now()->subMonths(4), 'sort_order' => 0]);
@@ -245,52 +221,5 @@ class DatabaseSeeder extends Seeder
         $this->command->info('  Admin:      admin@researchflow.test');
         $this->command->info('  Supervisor: sarah@researchflow.test');
         $this->command->info('  Student:    ali@researchflow.test');
-    }
-
-    private function createFypTemplate(Programme $programme): JourneyTemplate
-    {
-        $template = JourneyTemplate::create(['programme_id' => $programme->id, 'name' => 'FYP Standard Journey', 'is_default' => true]);
-        $s1 = $template->stages()->create(['name' => 'Proposal', 'sort_order' => 0, 'duration_weeks' => 4]);
-        $s1->milestones()->create(['name' => 'Topic Selection', 'sort_order' => 0, 'week_offset' => 2]);
-        $s1->milestones()->create(['name' => 'Proposal Approved', 'sort_order' => 1, 'week_offset' => 4]);
-        $s2 = $template->stages()->create(['name' => 'Development', 'sort_order' => 1, 'duration_weeks' => 16]);
-        $s2->milestones()->create(['name' => 'Design Complete', 'sort_order' => 0, 'week_offset' => 8]);
-        $s2->milestones()->create(['name' => 'Implementation Done', 'sort_order' => 1, 'week_offset' => 20]);
-        $s3 = $template->stages()->create(['name' => 'Report & Presentation', 'sort_order' => 2, 'duration_weeks' => 8]);
-        $s3->milestones()->create(['name' => 'Final Report', 'sort_order' => 0, 'week_offset' => 28]);
-        $s3->milestones()->create(['name' => 'Presentation', 'sort_order' => 1, 'week_offset' => 30]);
-        return $template;
-    }
-
-    private function createMscTemplate(Programme $programme): JourneyTemplate
-    {
-        $template = JourneyTemplate::create(['programme_id' => $programme->id, 'name' => 'MSc Research Journey', 'is_default' => true]);
-        $s1 = $template->stages()->create(['name' => 'Proposal Phase', 'sort_order' => 0, 'duration_weeks' => 12]);
-        $s1->milestones()->create(['name' => 'Proposal Approved', 'sort_order' => 0, 'week_offset' => 12]);
-        $s2 = $template->stages()->create(['name' => 'Literature Review', 'sort_order' => 1, 'duration_weeks' => 16]);
-        $s2->milestones()->create(['name' => 'Literature Review Complete', 'sort_order' => 0, 'week_offset' => 28]);
-        $s3 = $template->stages()->create(['name' => 'Methodology & Implementation', 'sort_order' => 2, 'duration_weeks' => 24]);
-        $s3->milestones()->create(['name' => 'System Design', 'sort_order' => 0, 'week_offset' => 36]);
-        $s3->milestones()->create(['name' => 'Implementation Complete', 'sort_order' => 1, 'week_offset' => 52]);
-        $s4 = $template->stages()->create(['name' => 'Analysis & Writing', 'sort_order' => 3, 'duration_weeks' => 24]);
-        $s4->milestones()->create(['name' => 'Thesis Draft', 'sort_order' => 0, 'week_offset' => 80]);
-        $s4->milestones()->create(['name' => 'Thesis Submitted', 'sort_order' => 1, 'week_offset' => 96]);
-        return $template;
-    }
-
-    private function createPhdTemplate(Programme $programme): JourneyTemplate
-    {
-        $template = JourneyTemplate::create(['programme_id' => $programme->id, 'name' => 'PhD Research Journey', 'is_default' => true]);
-        $s1 = $template->stages()->create(['name' => 'Coursework & Proposal', 'sort_order' => 0, 'duration_weeks' => 24]);
-        $s1->milestones()->create(['name' => 'Proposal Defence', 'sort_order' => 0, 'week_offset' => 24]);
-        $s2 = $template->stages()->create(['name' => 'Research Phase 1', 'sort_order' => 1, 'duration_weeks' => 48]);
-        $s2->milestones()->create(['name' => 'First Publication', 'sort_order' => 0, 'week_offset' => 52]);
-        $s2->milestones()->create(['name' => 'Candidature Defence', 'sort_order' => 1, 'week_offset' => 72]);
-        $s3 = $template->stages()->create(['name' => 'Research Phase 2', 'sort_order' => 2, 'duration_weeks' => 48]);
-        $s3->milestones()->create(['name' => 'Second Publication', 'sort_order' => 0, 'week_offset' => 120]);
-        $s4 = $template->stages()->create(['name' => 'Thesis & Viva', 'sort_order' => 3, 'duration_weeks' => 48]);
-        $s4->milestones()->create(['name' => 'Thesis Submitted', 'sort_order' => 0, 'week_offset' => 168]);
-        $s4->milestones()->create(['name' => 'Viva Voce', 'sort_order' => 1, 'week_offset' => 180]);
-        return $template;
     }
 }

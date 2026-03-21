@@ -42,7 +42,9 @@
     ];
 
     $studentId = match($displayRole) {
-        'student' => auth()->user()->student?->id,
+        'student' => session()->has('admin_view_as_student_id')
+            ? session()->get('admin_view_as_student_id')
+            : auth()->user()->student?->id,
         'admin' => \App\Models\Student::where('status', 'active')->first()?->id,
         default => \App\Models\Student::where('supervisor_id', auth()->id())
             ->orWhere('cosupervisor_id', auth()->id())
@@ -50,22 +52,12 @@
             ->first()?->id,
     };
 
-    // Add research section for admin when switched to student-like view
-    if ($studentId && $isRoleSwitched) {
-        $navGroups[$displayRole]['supervision'] = [
-            ['route' => ['tasks.index', $studentId], 'icon' => 'check-square', 'label' => 'Tasks'],
-            ['route' => ['tasks.kanban', $studentId], 'icon' => 'columns', 'label' => 'Kanban'],
-            ['route' => ['tasks.gantt', $studentId], 'icon' => 'bar-chart', 'label' => 'Gantt'],
-            ['route' => ['reports.index', $studentId], 'icon' => 'file-text', 'label' => 'Reports'],
-            ['route' => ['meetings.index', $studentId], 'icon' => 'calendar', 'label' => 'Meetings'],
-        ];
-    }
-
+    // Supervisor and co-supervisor navigation
     if ($studentId && in_array($displayRole, ['supervisor', 'cosupervisor'])) {
         $navGroups[$displayRole]['supervision'] = [
             ['route' => ['tasks.index', $studentId], 'icon' => 'check-square', 'label' => 'Tasks'],
             ['route' => ['tasks.kanban', $studentId], 'icon' => 'columns', 'label' => 'Kanban'],
-            ['route' => ['tasks.timeline-overview', $studentId], 'icon' => 'gantt-chart', 'label' => 'Gantt Chart'],
+            ['route' => ['tasks.gantt', $studentId], 'icon' => 'bar-chart', 'label' => 'Gantt'],
             ['route' => ['reports.index', $studentId], 'icon' => 'file-text', 'label' => 'Reports'],
             ['route' => ['meetings.index', $studentId], 'icon' => 'calendar', 'label' => 'Meetings'],
         ];

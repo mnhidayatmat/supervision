@@ -4,17 +4,16 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
-use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-        $student = $user->student()->with([
-            'programme', 'supervisor', 'cosupervisor',
-            'researchJourneys.stages.milestones',
-        ])->firstOrFail();
+        $student = $this->effectiveStudent();
+
+        if (!$student) {
+            abort(404, 'Student not found.');
+        }
 
         $tasks = $student->tasks()
             ->whereNull('parent_id')
